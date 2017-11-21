@@ -1,0 +1,3 @@
+[submodule "hubcommander"]
+	path = hubcommander
+	url = git@github.com:alkivi-sas/hubcommander.git

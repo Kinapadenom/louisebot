@@ -1,3 +1,6 @@
 alkivi-logger
 click
-slackbot
+rtmbot
+sqlalchemy
+pymysql
+-e ./hubcommander
