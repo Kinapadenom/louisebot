@@ -31,8 +31,7 @@ Python3, Mysql
     vim hubcommander/command_plugins/enabled_plugins.py
     ```
 
-Here is a quicklook
-
+Here is a quicklook :
     ```python
     from hubcommander.command_plugins.repeat.plugin import RepeatPlugin
     from plugins.cocotte import CocottePlugin
