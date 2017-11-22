@@ -31,7 +31,7 @@ vim rtmbot.conf
 vim hubcommander/command_plugins/enabled_plugins.py
 ```
 
-Here is a quicklook :
+Here is a quicklook of `cat hubcommander/command_plugins/enabled_plugins.py`:
 
 ```python
 from hubcommander.command_plugins.repeat.plugin import RepeatPlugin
