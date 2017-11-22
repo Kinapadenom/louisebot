@@ -197,7 +197,32 @@ class CocottePlugin(BotCommander):
 	optional=[],
     )
     def quimange(self, data, user_data):
-        return
+        session = DBSession()
+        outputs = []
+
+        day = self.get_db_day()
+        if not day:
+            day = Day(date=datetime.date.today())
+            session.add(day)
+            session.commit()
+
+        presences = session.query(Presence).filter(
+                Presence.day_id == day.id).all()
+        if not presences:
+            outputs.append("Personne d'inscrit aujourd'hui, sniff :(")
+        else:
+            total = 0
+            for presence in presences:
+                user = presence.user
+                total += presence.meals
+                guest = presence.meals - 1
+                if guest > 0:
+                    outputs.append("{0} avec {1} invités".format(user.name, guest))
+                else:
+                    outputs.append(user.name)
+            outputs.insert(0, "Aujourd'hui, ce sont déclarés {0} personne(s):".format(total))
+
+        send_info(data['channel'], text='\n'.join(outputs), markdown=True)
 
     @hubcommander_command(
         name="!Achat",
