@@ -32,6 +32,7 @@ Python3, Mysql
     ```
 
 Here is a quicklook :
+
     ```python
     from hubcommander.command_plugins.repeat.plugin import RepeatPlugin
     from plugins.cocotte import CocottePlugin
