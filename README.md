@@ -33,7 +33,7 @@ Python3, Mysql
 
 It should look like
 
-    ```
+    ```python
     from hubcommander.command_plugins.repeat.plugin import RepeatPlugin
     from plugins.cocotte import CocottePlugin
 
