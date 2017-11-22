@@ -29,7 +29,7 @@ class CocottePlugin(BotCommander):
             "!Balance": {
                 "command": "!Balance",
                 "func": self.balance,
-                "help": "Affiche l'état actuel des comptes",
+                "help": "Affiche l'état actuel des comptes.",
                 "user_data_required": True,
                 "enabled": True
             },
@@ -47,6 +47,27 @@ class CocottePlugin(BotCommander):
                 "user_data_required": True,
                 "enabled": True
             },
+            "!QuiMange": {
+                "command": "!QuiMange",
+                "func": self.quimange,
+                "help": "Liste les inscrits du midi.",
+                "user_data_required": True,
+                "enabled": True
+            },
+            "!Achat": {
+                "command": "!Achat",
+                "func": self.achat,
+                "help": "Pour déclarer un achat.",
+                "user_data_required": True,
+                "enabled": True
+            },
+            "!MyBalance": {
+                "command": "!MyBalance",
+                "func": self.mybalance,
+                "help": "Liste les derniers repas / achats et affiche sa balance.",
+                "user_data_required": True,
+                "enabled": True
+            },
         }
 
     def setup(self, *args):
@@ -54,6 +75,17 @@ class CocottePlugin(BotCommander):
         #for cmd, keys in USER_COMMAND_DICT.items():
         #    self.commands[cmd].update(keys)
         pass
+
+    @staticmethod
+    def get_db_user(user_data):
+        session = DBSession()
+        return session.query(User).filter(User.slackid == user_data['id']).first()
+
+    @staticmethod
+    def get_db_day():
+        session = DBSession()
+        today = datetime.date.today()
+        return session.query(Day).filter(Day.date == today).first()
 
     @hubcommander_command(
         name="!Balance",
@@ -82,19 +114,18 @@ class CocottePlugin(BotCommander):
     )
     def manger(self, data, user_data, guest):
         session = DBSession()
-        today = datetime.date.today()
 
-        day = session.query(Day).filter(Day.date == today).first()
+        day = self.get_db_day()
         if not day:
-            day = Day(date=today)
+            day = Day(date=datetime.date.today())
             session.add(day)
             session.commit()
 
         outputs = []
 
-        user = session.query(User).filter(User.slackid == user_data['id']).first()
+        user = self.get_db_user(user_data)
         if not user:
-            send_error(data['channel'], 'Erreur zjaifnazgoizangoiazg')
+            send_error(data['channel'], 'Erreur il faut ```python manage.db sync``` d\'abort !')
 
         presence = session.query(Presence).filter(
                 Presence.user_id == user.id,
@@ -132,17 +163,16 @@ class CocottePlugin(BotCommander):
     )
     def cancelmanger(self, data, user_data):
         session = DBSession()
-        today = datetime.date.today()
 
-        day = session.query(Day).filter(Day.date == today).first()
+        day = self.get_db_day()
         if not day:
-            day = Day(date=today)
+            day = Day(date=datetime.date.today())
             session.add(day)
             session.commit()
 
         outputs = []
 
-        user = session.query(User).filter(User.slackid == user_data['id']).first()
+        user = self.get_db_user(user_data)
         if not user:
             send_error(data['channel'], 'Erreur zjaifnazgoizangoiazg')
 
@@ -158,3 +188,33 @@ class CocottePlugin(BotCommander):
 
             outputs.append("Si besoin tu !Manger à nouveau :)")
         send_info(data['channel'], text='\n'.join(outputs), markdown=True)
+
+    @hubcommander_command(
+        name="!QuiMange",
+        usage="!QuiMange",
+        description="Liste les inscrits du midi.",
+        required=[],
+	optional=[],
+    )
+    def quimange(self, data, user_data):
+        return
+
+    @hubcommander_command(
+        name="!Achat",
+        usage="!Achat",
+        description="Pour déclarer un achat.",
+        required=[],
+	optional=[],
+    )
+    def achat(self, data, user_data):
+        return
+
+    @hubcommander_command(
+        name="!MyBalance",
+        usage="!MyBalance",
+        description="Liste les derniers repas / achats et affiche sa balance.",
+        required=[],
+	optional=[],
+    )
+    def mybalance(self, data, user_data):
+        return
