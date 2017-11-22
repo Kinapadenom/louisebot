@@ -49,3 +49,18 @@ COMMAND_PLUGINS = {
 cp louisebot.conf.example louisebot.conf
 vim louisebot.conf
 ```
+
+## Run
+
+You have to export your token
+
+```
+export SLACK_TOKEN='xoxb-dzadnazjdknazkdaz'
+```
+
+And then run rtmbot in your virtualenv
+```
+source ~/venv/louisebot/bin/activate
+cd louisebot # Where is was checkout
+rtmbot
+```
