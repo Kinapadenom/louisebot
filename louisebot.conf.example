@@ -1,0 +1,11 @@
+[default]
+endpoint=kinapadenom
+
+[kinapadenom]
+bot_token=xoxb-xxxxx
+bot_id=USSLACKBOT
+db_host=127.0.0.1
+db_name=louisebot
+db_user=louisebot
+db_pass=louisebot
+

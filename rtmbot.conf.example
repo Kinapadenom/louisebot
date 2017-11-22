@@ -1,0 +1,4 @@
+DEBUG: True # make this False in production
+SLACK_TOKEN: "xoxb-xxxxxxxx"
+ACTIVE_PLUGINS:
+    - hubcommander.hubcommander.HubCommander
