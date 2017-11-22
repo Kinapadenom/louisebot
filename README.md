@@ -4,7 +4,7 @@ Manage who eat and when :)
 
 ## Requirements
 
-Python3, Mysql
+Python3, and MySQL database
 
 ## Installation
 
@@ -49,6 +49,15 @@ COMMAND_PLUGINS = {
 cp louisebot.conf.example louisebot.conf
 vim louisebot.conf
 ```
+
+5. Create database and first sync with slack
+
+```
+python manage.py --debug createdb
+python manage.py --debug sync
+```
+
+You now should be set to run this bot :)
 
 ## Run
 
