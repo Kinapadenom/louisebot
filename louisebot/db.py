@@ -6,6 +6,7 @@ from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Date, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
+from sqlalchemy.ext.hybrid import hybrid_property
 
 
 from .config import config
@@ -20,6 +21,20 @@ class User(Base):
     slackid = Column(String(250), nullable=False)
     name = Column(String(250), nullable=False)
     admin = Column(Boolean, default=False)
+    expenses = relationship("Expense", back_populates="user")
+    presences = relationship("Presence", back_populates="user")
+
+    @hybrid_property
+    def balance(self):
+        total = 0.0
+        for expense in self.expenses:
+            total += expense.amount
+        for presence in self.presences:
+            amount = presence.day.price
+            total_amount = presence.meals * amount
+            total -= total_amount
+        return total
+
  
 class Day(Base):
     __tablename__ = 'day'
@@ -28,13 +43,14 @@ class Day(Base):
     id = Column(Integer, primary_key=True)
     date = Column(Date, nullable=False, default=datetime.date.today())
     price = Column(Float, nullable=False, default=5.0)
+    presences = relationship("Presence", back_populates="day")
 
 class Expense(Base):
     __tablename__ = 'expense'
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
-    user = relationship(User)
-    day = Column(Date, nullable=False, default=datetime.date.today())
+    user = relationship(User, back_populates="expenses")
+    date = Column(Date, nullable=False, default=datetime.date.today())
     amount = Column(Float, nullable=False)
     description = Column(String(250))
 
@@ -42,9 +58,9 @@ class Presence(Base):
     __tablename__ = 'presence'
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
-    user = relationship(User)
+    user = relationship(User, back_populates="presences")
     day_id = Column(Integer, ForeignKey('day.id'), nullable=False)
-    day = relationship(User)
+    day = relationship(Day, back_populates="presences")
     meals = Column(Integer, nullable=False, default=1)
 
 
