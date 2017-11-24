@@ -170,6 +170,8 @@ class CocottePlugin(BotCommander):
 
         outputs.append("Si besoin tu peux !CancelManger ou !Manger avec des invités :)")
         send_info(data['channel'], text='\n'.join(outputs), markdown=True, ephemeral_user=user_data["id"])
+        data['text'] = '!QuiMange'
+        self.quimange(data, user_data)
 
     @hubcommander_command(
         name="!CancelManger",
@@ -219,6 +221,7 @@ class CocottePlugin(BotCommander):
 
             outputs.append("Si besoin tu !Manger à nouveau :)")
         send_info(data['channel'], text='\n'.join(outputs), markdown=True, ephemeral_user=user_data["id"])
+        data['text'] = '!QuiMange'
         self.quimange(data, user_data)
 
     @hubcommander_command(
@@ -257,7 +260,7 @@ class CocottePlugin(BotCommander):
             else:
                 outputs.insert(0, "Ce midi, {0} personne mange, bravo à lui !!".format(total))
 
-        send_info(data['channel'], text='\n'.join(outputs), markdown=True, thread=data["ts"])
+        send_info(data['channel'], text='\n'.join(outputs), markdown=True)
 
     @hubcommander_command(
         name="!Achat",
