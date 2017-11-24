@@ -25,8 +25,6 @@ class CocottePlugin(BotCommander):
     def __init__(self):
         super().__init__()
 
-        self.session = DBSession()
-
         self.commands = {
             "!Balance": {
                 "command": "!Balance",
@@ -92,12 +90,14 @@ class CocottePlugin(BotCommander):
         #    self.commands[cmd].update(keys)
         pass
 
-    def get_db_user(self, user):
-        return self.session.query(User).filter(User.name == user).first()
+    @staticmethod
+    def get_db_user(session, user):
+        return session.query(User).filter(User.name == user).first()
 
-    def get_db_day(self):
+    @staticmethod
+    def get_db_day(session):
         today = datetime.date.today()
-        return self.session.query(Day).filter(Day.date == today).first()
+        return session.query(Day).filter(Day.date == today).first()
 
     @hubcommander_command(
         name="!Balance",
@@ -106,12 +106,13 @@ class CocottePlugin(BotCommander):
         required=[],
     )
     def balance(self, data, user_data):
-        users = self.session.query(User).all()
+        session = DBSession()
+        users = session.query(User).all()
         outputs = []
         outputs.append('Voici l\'état des compte chez Louise :')
         for user in users:
             outputs.append('{0} : balance à {1}'.format(user.name, user.balance))
-        send_info(data['channel'], text='\n'.join(outputs))
+        send_info(data['channel'], text='\n'.join(outputs), thread=data["ts"])
 
     @hubcommander_command(
         name="!Manger",
@@ -125,40 +126,41 @@ class CocottePlugin(BotCommander):
     )
     def manger(self, data, user_data, guest):
 
+        session = DBSession()
         if guest < 0:
-            send_error(data['channel'], "Touche à ton cul avec ton nombre négatif <@{0}> ;)".format(user_data['id']), markdown=True)
+            send_error(data['channel'], "Touche à ton cul avec ton nombre négatif <@{0}> ;)".format(user_data['id']), markdown=True, thread=data["ts"])
             return
 
 
-        day = self.get_db_day()
+        day = self.get_db_day(session)
         if not day:
             day = Day(date=datetime.date.today())
-            self.session.add(day)
-            self.session.commit()
+            session.add(day)
+            session.commit()
 
         outputs = []
 
-        user = self.get_db_user(user_data['name'])
+        user = self.get_db_user(session, user_data['name'])
         if not user:
-            send_error(data['channel'], 'Erreur il faut ```python manage.db sync``` d\'abort !')
+            send_error(data['channel'], 'Erreur il faut ```python manage.db sync``` d\'abort !', thread=data["ts"])
 
-        presence = self.session.query(Presence).filter(
+        presence = session.query(Presence).filter(
                 Presence.user_id == user.id,
                 Presence.day_id == day.id).first()
         if not presence:
             presence = Presence(user_id=user.id,
                                 day_id=day.id,
                                 meals=guest+1)
-            self.session.add(presence)
-            self.session.commit()
+            session.add(presence)
+            session.commit()
             outputs.append("J'ai pris en compte ta demande <@{0}>".format(user_data['id']))
             if guest > 0:
                 outputs.append("Je te compterai {0} part ce jour".format(guest+1))
         else:
             if presence.meals != guest+1:
                 presence.meals = guest+1
-                self.session.add(presence)
-                self.session.commit()
+                session.add(presence)
+                session.commit()
                 if guest > 0:
                     outputs.append("J'ai modifié ta demande, et rajouté {0} invité(s) <@{1}>".format(guest, user_data['id']))
                 else:
@@ -167,7 +169,7 @@ class CocottePlugin(BotCommander):
                 outputs.append("Rien n'a changé, tu étais déjà inscrit <@{1}> :)".format(guest, user_data['id']))
 
         outputs.append("Si besoin tu peux !CancelManger ou !Manger avec des invités :)")
-        send_info(data['channel'], text='\n'.join(outputs), markdown=True)
+        send_info(data['channel'], text='\n'.join(outputs), markdown=True, ephemeral_user=user_data["id"])
 
     @hubcommander_command(
         name="!CancelManger",
@@ -181,23 +183,25 @@ class CocottePlugin(BotCommander):
         ]
     )
     def cancelmanger(self, data, user_data, for_user):
-        day = self.get_db_day()
+        session = DBSession()
+
+        day = self.get_db_day(session)
         if not day:
             day = Day(date=datetime.date.today())
-            self.session.add(day)
-            self.session.commit()
+            session.add(day)
+            session.commit()
 
         outputs = []
 
         if for_user:
-            user = self.get_db_user(for_user)
+            user = self.get_db_user(session, for_user)
         else:
-            user = self.get_db_user(user_data['name'])
+            user = self.get_db_user(session, user_data['name'])
 
         if not user:
-            send_error(data['channel'], 'Erreur zjaifnazgoizangoiazg')
+            send_error(data['channel'], 'Erreur zjaifnazgoizangoiazg', thread=data["ts"])
 
-        presence = self.session.query(Presence).filter(
+        presence = session.query(Presence).filter(
                 Presence.user_id == user.id,
                 Presence.day_id == day.id).first()
         if not presence:
@@ -206,8 +210,8 @@ class CocottePlugin(BotCommander):
             else:
                 outputs.append("Tu n'étais pas inscrit, pas de soucis <@{0}> !".format(user_data['id']))
         else:
-            self.session.query(Presence).filter_by(id=presence.id).delete()
-            self.session.commit()
+            session.query(Presence).filter_by(id=presence.id).delete()
+            session.commit()
             if for_user:
                 outputs.append("J'ai supprimé l'inscription de @{0}.".format(user.name))
             else:
@@ -226,14 +230,15 @@ class CocottePlugin(BotCommander):
     )
     def quimange(self, data, user_data):
         outputs = []
+        session = DBSession()
 
-        day = self.get_db_day()
+        day = self.get_db_day(session)
         if not day:
             day = Day(date=datetime.date.today())
-            self.session.add(day)
-            self.session.commit()
+            session.add(day)
+            session.commit()
 
-        presences = self.session.query(Presence).filter(
+        presences = session.query(Presence).filter(
                 Presence.day_id == day.id).all()
         if not presences:
             outputs.append("Personne d'inscrit aujourd'hui, sniff :(")
@@ -252,7 +257,7 @@ class CocottePlugin(BotCommander):
             else:
                 outputs.insert(0, "Ce midi, {0} personne mange, bravo à lui !!".format(total))
 
-        send_info(data['channel'], text='\n'.join(outputs), markdown=True)
+        send_info(data['channel'], text='\n'.join(outputs), markdown=True, thread=data["ts"])
 
     @hubcommander_command(
         name="!Achat",
@@ -271,14 +276,15 @@ class CocottePlugin(BotCommander):
     )
     def achat(self, data, user_data, amount, description):
 
+        session = DBSession()
         today = datetime.date.today()
-        user = self.get_db_user(user_data['name'])
+        user = self.get_db_user(session, user_data['name'])
 
         expense = Expense(user_id=user.id, amount=amount, description=description)
-        self.session.add(expense)
-        self.session.commit()
+        session.add(expense)
+        session.commit()
 
-        send_info(data['channel'], text='Achat enregistré !', markdown=True)
+        send_info(data['channel'], text='Achat enregistré !', markdown=True, thread=data["ts"])
 
     @hubcommander_command(
         name="!ListAchat",
@@ -295,41 +301,50 @@ class CocottePlugin(BotCommander):
     )
     def listachat(self, data, user_data, history, for_user):
 
+        session = DBSession()
         today = datetime.date.today()
 
         if history < 1:
             send_error(data['channel'], "Non non non, history doit être > 1 <@{0}> ;)".format(user_data['id']), markdown=True)
             return
 
+        user = None
         if for_user:
-            user = self.get_db_user(for_user)
-        else:
-            user = self.get_db_user(user_data['name'])
+            user = self.get_db_user(session, for_user)
 
-        if not user:
-            send_error(data['channel'], 'Erreur zjaifnazgoizangoiazg')
+            if not user:
+                send_error(data['channel'], 'Erreur zjaifnazgoizangoiazg')
 
         delta = datetime.timedelta(days=history)
         start_date = today - delta
 
-        expenses = self.session.query(Expense).filter(
-                Expense.user_id == user.id,
-                Expense.date >= start_date).all()
+        query  = session.query(Expense).filter(
+                Expense.date >= start_date)
+        if user:
+            query = query.filter(Expense.user_id == user.id)
+
+        expenses = query.all()
 
         outputs = []
         if not expenses:
-            outputs.append("Pas d'achat dans les {0} derniers jours pour {1}".format(history, user.name))
+            if user:
+                outputs.append("Pas d'achat dans les {0} derniers jours pour {1}.".format(history, user.name))
+            else:
+                outputs.append("Pas d'achat dans les {0} derniers jours.".format(history))
         else:
-            if for_user:
+            if user:
                 outputs.append("Liste des achats depuis {0} jours par {1} :".format(history, user.name))
             else:
-                outputs.append("Liste de tes achats depuis {0} jours :".format(history))
+                outputs.append("Liste des achats depuis {0} jours :".format(history))
             for expense in expenses:
-                text = "- Le {0} : {1} €".format(expense.date, expense.amount)
+                if user:
+                    text = "- Le {0} : {1} €".format(expense.date, expense.amount)
+                else:
+                    text = "- {0}, le {1} : {2} €".format(expense.user.name, expense.date, expense.amount)
                 if expense.description:
                     text += " pour {0}".format(expense.description)
                 outputs.append(text)
-        send_info(data['channel'], text='\n'.join(outputs), markdown=True)
+        send_info(data['channel'], text='\n'.join(outputs), markdown=True, thread=data["ts"])
 
     @hubcommander_command(
         name="!MyBalance",
@@ -347,14 +362,15 @@ class CocottePlugin(BotCommander):
     def mybalance(self, data, user_data, history, for_user):
         today = datetime.date.today()
 
+        session = DBSession()
         if history < 1:
             send_error(data['channel'], "Non non non, history doit être > 1 <@{0}> ;)".format(user_data['id']), markdown=True)
             return
 
         if for_user:
-            user = self.get_db_user(for_user)
+            user = self.get_db_user(session, for_user)
         else:
-            user = self.get_db_user(user_data['name'])
+            user = self.get_db_user(session, user_data['name'])
 
         if not user:
             send_error(data['channel'], 'Erreur zjaifnazgoizangoiazg')
@@ -362,7 +378,7 @@ class CocottePlugin(BotCommander):
         delta = datetime.timedelta(days=history)
         start_date = today - delta
 
-        expenses = self.session.query(Expense).filter(
+        expenses = session.query(Expense).filter(
                 Expense.user_id == user.id,
                 Expense.date >= start_date).all()
 
@@ -380,7 +396,7 @@ class CocottePlugin(BotCommander):
                     text += " pour {0}".format(expense.description)
                 outputs.append(text)
 
-        presences = self.session.query(Presence).filter(Presence.user_id == user.id).join(Day).filter(Day.date >= start_date).all()
+        presences = session.query(Presence).filter(Presence.user_id == user.id).join(Day).filter(Day.date >= start_date).all()
 
         if not presences:
             outputs.append("Pas de repas compatibilisé dans les {0} derniers jours pour {1}".format(history, user.name))
@@ -398,7 +414,7 @@ class CocottePlugin(BotCommander):
         else:
             outputs.append("Du coup, en tout, voici ta balance : {0} €".format(user.balance))
 
-        send_info(data['channel'], text='\n'.join(outputs), markdown=True)
+        send_info(data['channel'], text='\n'.join(outputs), markdown=True, thread=data["ts"])
 
     @hubcommander_command(
         name="!MealPrice",
@@ -408,14 +424,15 @@ class CocottePlugin(BotCommander):
 	optional=[],
     )
     def mealprice(self, data, user_data):
+        session = DBSession()
 
         total_expenses = 0.0
-        expenses = self.session.query(Expense).all()
+        expenses = session.query(Expense).all()
         for expense in expenses:
             total_expenses += expense.amount
 
         total_presences = 0
-        presences = self.session.query(Presence).all()
+        presences = session.query(Presence).all()
         for presence in presences:
             total_presences += presence.meals
             
