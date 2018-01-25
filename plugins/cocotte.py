@@ -107,11 +107,16 @@ class CocottePlugin(BotCommander):
     )
     def balance(self, data, user_data):
         session = DBSession()
-        users = session.query(User).all()
+        users = (session.query(User)
+                .all())
         outputs = []
         outputs.append('Voici l\'état des compte chez Louise :')
+        real_users = []
         for user in users:
-            outputs.append('{0} : balance à {1}'.format(user.name, user.balance))
+            real_users.append({'name': user.name, 'balance': user.balance})
+
+        for user in sorted(real_users, key=lambda x: x['balance']):
+            outputs.append('{0} : balance à {1}'.format(user['name'], user['balance']))
         send_info(data['channel'], text='\n'.join(outputs), thread=data["ts"])
 
     @hubcommander_command(
