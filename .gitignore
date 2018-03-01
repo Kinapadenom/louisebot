@@ -2,3 +2,4 @@
 __pycache__
 rtmbot.conf
 *.log.2017*
+*.log.2018*
