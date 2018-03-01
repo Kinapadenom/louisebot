@@ -74,6 +74,29 @@ def _sync_user(slack_data, session):
             logger.info('Updating admin status for {0}'.format(user.name))
         session.add(user)
 
+@cli.command()
+@click.option('--user', prompt='User to delete',
+                      help='The user to delete.')
+def delete_user(user):
+    """Sync user with slack."""
+    session = DBSession()
+    db_user = session.query(User).filter(User.name == user).first()
+    if not db_user:
+        logger.warning('User {0} does not exist'.format(user))
+        exit(0)
+
+    balance = db_user.balance
+    logger.info('test {0} {1}'.format(user, balance))
+
+    if balance == 0.0:
+        session.delete(db_user)
+        session.commit()
+        logger.info('User {0} deleted !'.format(user))
+    else:
+        logger.warning('User {0} has a balance of {1}'.format(user, balance))
+        logger.warning('Must be reseted to 0 :)')
+        exit(1)
+
 if __name__ == '__main__':
     cli()
 
