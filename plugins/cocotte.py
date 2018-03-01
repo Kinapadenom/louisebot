@@ -116,7 +116,7 @@ class CocottePlugin(BotCommander):
             real_users.append({'name': user.name, 'balance': user.balance})
 
         for user in sorted(real_users, key=lambda x: x['balance']):
-            outputs.append('{0} : balance à {1}'.format(user['name'], user['balance']))
+            outputs.append('{0} : balance à {1:.2f}'.format(user['name'], user['balance']))
         send_info(data['channel'], text='\n'.join(outputs), thread=data["ts"])
 
     @hubcommander_command(
