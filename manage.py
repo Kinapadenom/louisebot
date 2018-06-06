@@ -49,6 +49,8 @@ def sync():
         for user in users:
             if user['name'] == 'slackbot':
                 continue
+            if user['deleted']:
+                continue
             if not user['is_bot']:
                 _sync_user(user, session)
     else:
