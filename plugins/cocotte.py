@@ -126,10 +126,13 @@ class CocottePlugin(BotCommander):
         required=[],
 	optional=[
             dict(name="guest", properties=dict(nargs="?", default=0, type=int,
-                                                help="Nombre d'invité avec vous"))
+                                                help="Nombre d'invité avec vous")),
+            dict(name="for_user", properties=dict(nargs="?", default=None, type=str,
+                                                help="Annuler l'entrée d'un autre user"),
+                 lowercase=True)
         ]
     )
-    def manger(self, data, user_data, guest):
+    def manger(self, data, user_data, guest, for_user):
 
         session = DBSession()
         if guest < 0:
@@ -145,36 +148,64 @@ class CocottePlugin(BotCommander):
 
         outputs = []
 
-        user = self.get_db_user(session, user_data['name'])
+        if for_user:
+            user = self.get_db_user(session, for_user)
+            from_user = self.get_db_user(session, user_data['name'])
+        else:
+            user = self.get_db_user(session, user_data['name'])
+
         if not user:
             send_error(data['channel'], 'Erreur il faut ```python manage.db sync``` d\'abort !', thread=data["ts"])
 
         presence = session.query(Presence).filter(
                 Presence.user_id == user.id,
                 Presence.day_id == day.id).first()
+
+
         if not presence:
             presence = Presence(user_id=user.id,
                                 day_id=day.id,
                                 meals=guest+1)
             session.add(presence)
             session.commit()
-            outputs.append("J'ai pris en compte ta demande <@{0}>".format(user_data['id']))
-            if guest > 0:
-                outputs.append("Je te compterai {0} part ce jour".format(guest+1))
+
+            if for_user:
+                outputs.append("Demande enregistrée par <@{0}> pour <@{1}>".format(from_user.slackid, user.slackid))
+                if guest > 0:
+                    outputs.append("Je compterai {0} part(s)".format(guest+1))
+            else:
+                outputs.append("J'ai pris en compte ta demande <@{1}>".format(user_data['id']))
+                if guest > 0:
+                    outputs.append("Je te compterai {0} part ce jour".format(guest+1))
         else:
             if presence.meals != guest+1:
                 presence.meals = guest+1
                 session.add(presence)
                 session.commit()
-                if guest > 0:
-                    outputs.append("J'ai modifié ta demande, et rajouté {0} invité(s) <@{1}>".format(guest, user_data['id']))
+
+                if for_user:
+                    if guest > 0:
+                        outputs.append("Demande modifiée par <@{0}> pour <@{1}>, {2} invité(s) rajoutés".format(from_user.slackid, user.slackid, guest))
+                    else:
+                        outputs.append("Demande modifiée par <@{0}> pour <@{1}>, les invités ont été supprimés".format(from_user.slackid, user.slackid, guest))
                 else:
-                    outputs.append("J'ai modifié ta demande, et enlevé les invités <@{1}>".format(guest, user_data['id']))
+                    if guest > 0:
+                        outputs.append("J'ai modifié ta demande, et rajouté {0} invité(s) <@{1}>".format(guest, user.slackid))
+                    else:
+                        outputs.append("J'ai modifié ta demande, et enlevé les invités <@{1}>".format(guest, user.slackid))
             else:
-                outputs.append("Rien n'a changé, tu étais déjà inscrit <@{1}> :)".format(guest, user_data['id']))
+                if for_user:
+                    outputs.append("Rien n'a changé, <@{0}> était déjà inscrit <@{1}> :)".format(user.slackid, from_user.slackid))
+                else:
+                    outputs.append("Rien n'a changé, tu étais déjà inscrit <@{0}> :)".format(user.slackid))
+
 
         outputs.append("Si besoin tu peux !CancelManger ou !Manger avec des invités :)")
-        send_info(data['channel'], text='\n'.join(outputs), markdown=True, ephemeral_user=user_data["id"])
+        if for_user:
+            send_info(data['channel'], text='\n'.join(outputs), markdown=True, ephemeral_user=user.slackid)
+            send_info(data['channel'], text='\n'.join(outputs), markdown=True, ephemeral_user=from_user.slackid)
+        else:
+            send_info(data['channel'], text='\n'.join(outputs), markdown=True, ephemeral_user=user_data["id"])
         data['text'] = '!QuiMange'
         self.quimange(data, user_data)
 
