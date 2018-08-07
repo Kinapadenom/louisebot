@@ -40,6 +40,20 @@ class CocottePlugin(BotCommander):
                 "user_data_required": True,
                 "enabled": True
             },
+            "!Cuisiner": {
+                "command": "!Cuisiner",
+                "func": self.cuisiner,
+                "help": "Pour dire 'Je Cuisine ce midi !'",
+                "user_data_required": True,
+                "enabled": True
+            },
+            "!CancelCuisiner": {
+                "command": "!CancelCuisiner",
+                "func": self.cancelcuisiner,
+                "help": "Pour annuler le fait que 'Je Cuisine ce midi !'",
+                "user_data_required": True,
+                "enabled": True
+            },
             "!CancelManger": {
                 "command": "!CancelManger",
                 "func": self.cancelmanger,
@@ -155,7 +169,7 @@ class CocottePlugin(BotCommander):
             user = self.get_db_user(session, user_data['name'])
 
         if not user:
-            send_error(data['channel'], 'Erreur il faut ```python manage.db sync``` d\'abort !', thread=data["ts"])
+            send_error(data['channel'], 'Erreur il faut ```python manage.py sync``` d\'abort !', thread=data["ts"])
 
         presence = session.query(Presence).filter(
                 Presence.user_id == user.id,
@@ -174,7 +188,7 @@ class CocottePlugin(BotCommander):
                 if guest > 0:
                     outputs.append("Je compterai {0} part(s)".format(guest+1))
             else:
-                outputs.append("J'ai pris en compte ta demande <@{1}>".format(user_data['id']))
+                outputs.append("J'ai pris en compte ta demande <@{0}>".format(user_data['id']))
                 if guest > 0:
                     outputs.append("Je te compterai {0} part ce jour".format(guest+1))
         else:
@@ -291,10 +305,12 @@ class CocottePlugin(BotCommander):
                     outputs.append("{0} avec {1} invités".format(user.name, guest))
                 else:
                     outputs.append(user.name)
+                if presence.cook == 1:
+                    outputs.append("C'est {0} qui cuisinera".format(user.name))
             if total > 1:
                 outputs.insert(0, "Ce midi, {0} personnes mangent:".format(total))
             else:
-                outputs.insert(0, "Ce midi, {0} personne mange, bravo à lui !!".format(total))
+                outputs.insert(0, "Ce midi, {0} personne mange, bravo à elle !!".format(total))
 
         send_info(data['channel'], text='\n'.join(outputs), markdown=True)
 
@@ -483,3 +499,89 @@ class CocottePlugin(BotCommander):
         outputs.append("Prix moyen d'un repas : {0} €".format(average_price))
 
         send_info(data['channel'], text='\n'.join(outputs), markdown=True)
+
+
+    @hubcommander_command(
+        name="!Cuisiner",
+        usage="!Cuisiner",
+        description="Pour indiquer qui Cuisine",
+        required=[],
+    )
+    def cuisiner(self, data, user_data):
+
+        session = DBSession()
+
+        day = self.get_db_day(session)
+        if not day:
+            day = Day(date=datetime.date.today())
+            session.add(day)
+            session.commit()
+
+        outputs = []
+
+        user = self.get_db_user(session, user_data['name'])
+
+        if not user:
+            send_error(data['channel'], 'Erreur il faut ```python manage.py sync``` d\'abort !', thread=data["ts"])
+
+        presence = session.query(Presence).filter(
+                Presence.user_id == user.id,
+                Presence.day_id == day.id).first()
+
+
+        if not presence:
+            presence = Presence(user_id=user.id,
+                                day_id=day.id,
+                                cook=1)
+            session.add(presence)
+            session.commit()
+
+            outputs.append("J'ai pris en compte le fait que tu cuisinais aujourd'hui")
+        
+        else:
+            presence.cook = 1
+            session.add(presence)
+            session.commit()
+
+            outputs.append("J'ai pris en compte le fait que tu cuisinais aujourd'hui")
+        send_info(data['channel'], text='\n'.join(outputs), markdown=True, ephemeral_user=user_data["id"])
+        data['text'] = '!QuiMange'
+        self.quimange(data, user_data)
+
+
+    @hubcommander_command(
+        name="!CancelCuisiner",
+        usage="!CancelCuisiner",
+        description="Pour annuler le fait d'avoir cuisiner",
+        required=[],
+    )
+    def cancelcuisiner(self, data, user_data):
+        session = DBSession()
+
+        day = self.get_db_day(session)
+        if not day:
+            day = Day(date=datetime.date.today())
+            session.add(day)
+            session.commit()
+
+        outputs = []
+
+        user = self.get_db_user(session, user_data['name'])
+
+        if not user:
+            send_error(data['channel'], 'Erreur zjaifnazgoizangoiazg', thread=data["ts"])
+
+        presence = session.query(Presence).filter(
+                Presence.user_id == user.id,
+                Presence.day_id == day.id).first()
+        if not presence:
+            outputs.append("Tu n'étais pas inscrit, pas de soucis <@{0}> !".format(user_data['id']))
+        else:
+            presence.cook = 0
+            session.add(presence)
+            session.commit()
+            outputs.append("J'ai supprimé le fait que tu avais cuisiné")
+
+        send_info(data['channel'], text='\n'.join(outputs), markdown=True, ephemeral_user=user_data["id"])
+        data['text'] = '!QuiMange'
+        self.quimange(data, user_data)

@@ -62,7 +62,7 @@ class Presence(Base):
     day_id = Column(Integer, ForeignKey('day.id'), nullable=False)
     day = relationship(Day, back_populates="presences")
     meals = Column(Integer, nullable=False, default=1)
-
+    cook = Column(Integer, nullable=False, default=0)
 
  
 # Create an engine that stores data
