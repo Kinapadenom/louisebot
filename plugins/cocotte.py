@@ -15,6 +15,7 @@ from hubcommander.bot_components.slack_comm import send_info, send_error, send_s
 
 from louisebot.config import config
 from louisebot.db import DBSession, User, Day, Presence, Expense
+from sqlalchemy import func
 
 endpoint = config.get('default', 'endpoint')
 bot_id = config.get(endpoint, 'bot_id')
@@ -131,7 +132,33 @@ class CocottePlugin(BotCommander):
 
         for user in sorted(real_users, key=lambda x: x['balance']):
             outputs.append('{0} : balance à {1:.2f}'.format(user['name'], user['balance']))
-        send_info(data['channel'], text='\n'.join(outputs), thread=data["ts"])
+        send_info(data['channel'], text='\n'.join(outputs))
+
+
+        query  = session.query(User.name, User.id.label('id'), func.sum(Presence.cook).label('sum_cook')).join(Presence, User.id == Presence.user_id).filter(Presence.cook.isnot(None)).group_by(User.name)
+        users = query.all()
+
+        outputs = []
+        #outputs.append('Qui a cuisiné et pour combien de personnes ?')
+        id_user = 0
+
+        
+        outputs.append('```')  
+        outputs.append('|   Nom  |   Nbr de fois Cuisinier   |   Repas cuisinés  | Repas mangé|')  
+        outputs.append('|--------|---------------------------|-------------------|------------|')  
+        for user in users :
+            days  = session.query(Presence.day_id).filter(Presence.cook == 1).filter(Presence.user_id == user.id).group_by(Presence.day_id).subquery() # days where he cooked
+            cooked = session.query(Presence.user_id, func.sum(Presence.meals).label('sum_cooked')).filter(Presence.day_id.in_(days)).first() #sum_cooked Number of person that he cooked for
+            if cooked is None:
+                cooked = 0
+            else:
+                cooked = str (cooked[1]) #cooked arrive avec le format suivant [(10, 2)] , donc [(user_id, sum_cooked)]
+            eat = session.query(func.count(Presence.cook)).filter(Presence.cook.isnot(None)).filter(Presence.user_id == user.id).first() # Number of days he eated
+            outputs.append('|{:7} |   {:23} |   {:15} |   {:9}|'.format(user.name,user.sum_cook,cooked,eat[0]))  
+
+        outputs.append('```')  
+        send_info(data['channel'], text='\n'.join(outputs), markdown=True)
+
 
     @hubcommander_command(
         name="!Manger",
