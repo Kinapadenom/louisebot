@@ -123,6 +123,7 @@ class CocottePlugin(BotCommander):
     def balance(self, data, user_data):
         session = DBSession()
         users = (session.query(User)
+                .filter(User.status == 1)
                 .all())
         outputs = []
         outputs.append('Voici l\'état des compte chez Louise :')
@@ -135,7 +136,9 @@ class CocottePlugin(BotCommander):
         send_info(data['channel'], text='\n'.join(outputs))
 
 
-        query  = session.query(User.name, User.id.label('id'), func.sum(Presence.cook).label('sum_cook')).join(Presence, User.id == Presence.user_id).filter(Presence.cook.isnot(None)).group_by(User.name)
+        query  = session.query(User.name, User.status, User.id.label('id'), func.sum(Presence.cook).label('sum_cook'))\
+            .filter(User.status == 1)\
+            .join(Presence, User.id == Presence.user_id).filter(Presence.cook.isnot(None)).group_by(User.name)
         users = query.all()
 
         outputs = []
@@ -147,6 +150,9 @@ class CocottePlugin(BotCommander):
         outputs.append('|   Nom  |   Nbr de fois Cuisinier   |   Repas cuisinés  | Repas mangé|')  
         outputs.append('|--------|---------------------------|-------------------|------------|')  
         for user in users :
+            # Skip old user
+            if not user.status:
+                continue
             days  = session.query(Presence.day_id).filter(Presence.cook == 1).filter(Presence.user_id == user.id).group_by(Presence.day_id).subquery() # days where he cooked
             cooked = session.query(Presence.user_id, func.sum(Presence.meals).label('sum_cooked')).filter(Presence.day_id.in_(days)).first() #sum_cooked Number of person that he cooked for
             if cooked is None:
