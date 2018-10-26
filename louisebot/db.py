@@ -21,6 +21,7 @@ class User(Base):
     slackid = Column(String(250), nullable=False)
     name = Column(String(250), nullable=False)
     admin = Column(Boolean, default=False)
+    status = Column(Boolean, default=False)
     expenses = relationship("Expense", back_populates="user")
     presences = relationship("Presence", back_populates="user")
 
@@ -42,7 +43,7 @@ class Day(Base):
     # Notice that each column is also a normal Python instance attribute.
     id = Column(Integer, primary_key=True)
     date = Column(Date, nullable=False, default=datetime.date.today())
-    price = Column(Float, nullable=False, default=5.0)
+    price = Column(Float, nullable=False, default=4.2)
     presences = relationship("Presence", back_populates="day")
 
 class Expense(Base):
