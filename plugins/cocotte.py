@@ -147,8 +147,8 @@ class CocottePlugin(BotCommander):
 
         
         outputs.append('```')  
-        outputs.append('|         Nom       |   Nbr de fois Cuisinier   |   Repas cuisinés  | Repas mangé|')  
-        outputs.append('|-------------------|---------------------------|-------------------|------------|')  
+        outputs.append('|         Nom       |Nbr de fois Cuisinier|Repas cuisinés|Repas mangé|')  
+        outputs.append('|-------------------|---------------------|--------------|-----------|')  
         for user in users :
             # Skip old user
             if not user.status:
