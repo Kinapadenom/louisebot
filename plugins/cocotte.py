@@ -147,8 +147,8 @@ class CocottePlugin(BotCommander):
 
         
         outputs.append('```')  
-        outputs.append('|         Nom       |Nbr de fois Cuisinier|Repas cuisinés|Repas mangé|')  
-        outputs.append('|-------------------|---------------------|--------------|-----------|')  
+        outputs.append('|      Nom    |  Nbr de fois Cuisinier |  Repas cuisiné | Repas mangé|')  
+        outputs.append('|-------------|------------------------|----------------|------------|')  
         for user in users :
             # Skip old user
             if not user.status:
@@ -160,7 +160,7 @@ class CocottePlugin(BotCommander):
             else:
                 cooked = str (cooked[1]) #cooked arrive avec le format suivant [(10, 2)] , donc [(user_id, sum_cooked)]
             eat = session.query(func.count(Presence.cook)).filter(Presence.cook.isnot(None)).filter(Presence.user_id == user.id).first() # Number of days he eated
-            outputs.append('|{:15} |   {:23} |   {:15} |   {:9}|'.format(user.name,user.sum_cook,cooked,eat[0]))  
+            outputs.append('|{:12} |   {:20} |   {:12} |   {:9}|'.format(user.name,user.sum_cook,cooked,eat[0]))  
 
         outputs.append('```')  
         send_info(data['channel'], text='\n'.join(outputs), markdown=True)
