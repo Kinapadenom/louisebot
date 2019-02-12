@@ -63,7 +63,8 @@ def _sync_user(slack_data, session):
     if not user:
         user = User(name=slack_data['name'],
                     slackid=slack_data['id'],
-                    admin=slack_data['is_admin'])
+                    admin=slack_data['is_admin'],
+                    status=True)
         logger.debug('Creating user {0}'.format(slack_data['name']))
         session.add(user)
     else:
