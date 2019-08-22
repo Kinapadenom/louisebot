@@ -43,7 +43,7 @@ class Day(Base):
     # Notice that each column is also a normal Python instance attribute.
     id = Column(Integer, primary_key=True)
     date = Column(Date, nullable=False, default=datetime.date.today())
-    price = Column(Float, nullable=False, default=4.2)
+    price = Column(Float, nullable=False, default=5)
     presences = relationship("Presence", back_populates="day")
 
 class Expense(Base):
