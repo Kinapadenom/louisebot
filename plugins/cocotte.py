@@ -131,8 +131,13 @@ class CocottePlugin(BotCommander):
         for user in users:
             real_users.append({'name': user.name, 'balance': user.balance})
 
+        total_balance = 0.0
         for user in sorted(real_users, key=lambda x: x['balance']):
-            outputs.append('{0} : balance à {1:.2f}'.format(user['name'], user['balance']))
+            user_balance = float(user['balance'])
+            total_balance += user_balance
+            if abs(user_balance) > 1:
+                outputs.append('{0} : balance à {1:.2f}'.format(user['name'], user_balance))
+        outputs.append('\nTotal balance : {0:.2f}'.format(total_balance))
         send_info(data['channel'], text='\n'.join(outputs))
 
 
